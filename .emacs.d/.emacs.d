@@ -1,1 +1,0 @@
-/home/onishi.tsutomu/dotfiles/.emacs.d
