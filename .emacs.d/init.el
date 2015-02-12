@@ -2,34 +2,79 @@
 (require 'cask "~/.cask/cask.el" t)
 (cask-initialize)
 
-
-;;; 言語設定
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; 言語環境、日本語入力など
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (set-language-environment "Japanese")
 (prefer-coding-system 'utf-8)
 
-;;; site-lisp auto-load
-;(let ((default-directory (expand-file-name "~/.emacs.d/site-lisp")))
-;  (add-to-list 'load-path default-directory)
-;  (if (fboundp 'normal-top-level-add-subdirs-to-load-path)
-;      (normal-top-level-add-subdirs-to-load-path)))
+;;; バックアップ・自動保存
+(setq auto-save-default nil)
+(setq make-backup-files nil)
+(setq vc-make-backup-files nil)
 
-;;; 行数表示
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; フレーム、ウィンドウまわりのいろいろ
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; モードラインの行番号・桁番号
 (global-linum-mode t)
-(setq linum-format "%4d| ")
+(line-number-mode t)
+(column-number-mode t)
+(setq linum-format "%4d|")
 
-;;; 対応する括弧をハイライト
+;; カーソル
+(setq default-frame-alist
+      (append (list
+               '(cursor-type . box)
+               '(cursor-height . 4)
+               )
+              default-frame-alist))
+(when window-system (blink-cursor-mode -1))
+
+;; 対応するカッコを強調表示
 (show-paren-mode t)
+(setq show-paren-style 'mixed) ; `parenthesis' or `expression' or `mixed'
+
+;; 透明度を変更するコマンド M-x set-alpha
+;; http://qiita.com/marcy@github/items/ba0d018a03381a964f24
+(defun set-alpha (alpha-num)
+  "set frame parameter 'alpha"
+  (interactive "nAlpha: ")
+  (set-frame-parameter nil 'alpha (cons alpha-num '(90))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; 開発言語関係いろいろ
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; インデント関係 2幅でスペースがでふぉ
+(setq tab-width 2)
+(setq indent-tabs-mode nil)
+(setq c-basic-offset 2)
+(setq js-indent-level 2)
 
 ;; インデントルール
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 2)
 (setq-default show-trailing-whitespace t) ; 行末の空白をハイライト
 
-;; *.~ とかのバックアップファイルを作らない
-(setq make-backup-files nil)
-;; .#* とかのバックアップファイルを作らない
-(setq auto-save-default nil)
-
+;; php-mode
+(load-library "php-mode")
+(require 'php-mode)
+(add-hook 'php-mode-hook (lambda ()
+    (setq tab-width 2)
+    (setq indent-tabs-mode nil)
+    (setq c-basic-offset 2)
+    (defun ywb-php-lineup-arglist-intro (langelem)
+      (save-excursion
+        (goto-char (cdr langelem))
+        (vector (+ (current-column) c-basic-offset))))
+    (defun ywb-php-lineup-arglist-close (langelem)
+      (save-excursion
+        (goto-char (cdr langelem))
+        (vector (current-column))))
+    (c-set-offset 'arglist-intro 'ywb-php-lineup-arglist-intro)
+    (c-set-offset 'arglist-close 'ywb-php-lineup-arglist-close)))
 
 ;; theme
 (load-theme 'tango-dark t)
