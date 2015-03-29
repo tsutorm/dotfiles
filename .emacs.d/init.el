@@ -43,6 +43,10 @@
   (interactive "nAlpha: ")
   (set-frame-parameter nil 'alpha (cons alpha-num '(90))))
 
+;;; 上部のメニューはあるだけ邪魔なので消す
+(tool-bar-mode -1)
+(menu-bar-mode -1)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; 開発言語関係いろいろ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -76,6 +80,18 @@
     (c-set-offset 'arglist-intro 'ywb-php-lineup-arglist-intro)
     (c-set-offset 'arglist-close 'ywb-php-lineup-arglist-close)))
 
+;; ruby-mode
+(autoload 'ruby-mode "ruby-mode"
+  "Mode for editing ruby source files" t)
+(add-to-list 'auto-mode-alist '("\\.rb$latex " . ruby-mode))
+(add-to-list 'auto-mode-alist '("Capfile$" . ruby-mode))
+(add-to-list 'auto-mode-alist '("Gemfile$" . ruby-mode))
+(require 'ruby-block)
+(ruby-block-mode t)
+(setq ruby-block-highlight-toggle t)
+
+
+
 ;; theme
 (load-theme 'tango-dark t)
 ;; rainbow-delimiters
@@ -98,8 +114,8 @@
 (require 'helm-gtags)
 ;; 標準を置き換え
 (helm-mode +1)
-;;(global-set-key (kbd "C-x b") 'helm-for-files)
-;;(global-set-key (kbd "C-x C-f") 'helm-find-files)
+(global-set-key (kbd "C-x b") 'helm-for-files)
+(global-set-key (kbd "C-x C-f") 'helm-find-files)
 ;; helmショートカット
 (global-set-key (kbd "C-x C-h h") 'helm-mini)
 (global-set-key (kbd "C-x C-h r") 'helm-recentf)
@@ -125,7 +141,7 @@
    ;;ジャンプ前の場所に戻る
    (local-set-key (kbd "C-t") 'helm-gtags-pop-stack)))
 (add-hook 'php-mode-hook 'helm-gtags-mode)
-;(add-hook 'ruby-mode-hook 'helm-gtags-mode)
+(add-hook 'ruby-mode-hook 'helm-gtags-mode)
 
 
 
