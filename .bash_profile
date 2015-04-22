@@ -46,5 +46,5 @@ TERM="xterm-256color"
 export PATH
 export TERM
 alias emacs=/usr/local/bin/emacs-24.3
-PATH=/home/onishi.tsutomu/.cask/bin:/usr/lib/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/home/onishi.tsutomu/bin:/home/onishi.tsutomu/bin
+PATH=$HOME/.cask/bin:/usr/lib/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:$HOME/bin
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm" # Load RVM into a shell session *as a function*
