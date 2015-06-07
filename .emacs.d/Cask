@@ -11,6 +11,7 @@
 (depends-on "f")
 (depends-on "auto-install")
 (depends-on "rainbow-delimiters")
+(depends-on "color-theme-solarized")
 
 ;; Coding
 (depends-on "flycheck")
