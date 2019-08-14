@@ -1,6 +1,26 @@
-;; Emacs package system
-(require 'cask "~/.cask/cask.el" t)
-(cask-initialize)
+(require 'package)
+;;;;; add melpa and orgmode for packages
+(setq package-archives
+      '(("melpa" . "http://melpa.org/packages/")
+        ("melpa-stable" . "http://stable.melpa.org/packages/")
+        ; ("marmalade" . "http://marmalade-repo.org/packages/")
+        ("org" . "http://orgmode.org/elpa/")))
+;; Added by Package.el.  This must come before configurations of
+;; installed packages.  Don't delete this line.  If you don't want it,
+;; just comment it out by adding a semicolon to the start of the line.
+;; You may delete these explanatory comments.
+(package-initialize)
+
+(unless package-archive-contents
+  (package-refresh-contents))
+;;;;; ensure to use use-package
+(when (not (package-installed-p 'use-package))
+  (package-install 'use-package))
+(require 'use-package)
+
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+(when (file-exists-p custom-file)
+  (load custom-file))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; 言語環境、日本語入力など
@@ -21,6 +41,7 @@
 (global-linum-mode t)
 (line-number-mode t)
 (column-number-mode t)
+(require 'linum)
 (setq linum-format "%4d|")
 
 ;; カーソル
@@ -32,20 +53,23 @@
               default-frame-alist))
 (when window-system (blink-cursor-mode -1))
 
-;; 対応するカッコを強調表示
-(show-paren-mode t)
-(setq show-paren-style 'mixed) ; `parenthesis' or `expression' or `mixed'
+;; 対応するカッコを強調表示はrainbow-delimiter
+;(require 'rainbow-delimiters)
+(add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
 
-;; 透明度を変更するコマンド M-x set-alpha
-;; http://qiita.com/marcy@github/items/ba0d018a03381a964f24
-(defun set-alpha (alpha-num)
-  "set frame parameter 'alpha"
-  (interactive "nAlpha: ")
-  (set-frame-parameter nil 'alpha (cons alpha-num '(90))))
+;;; 透明度を変更するコマンド M-x set-alpha
+;;; http://qiita.com/marcy@github/items/ba0d018a03381a964f24
+;(defun set-alpha (alpha-num)
+;  "set frame parameter 'alpha"
+;  (interactive "nAlpha: ")
+;  (set-frame-parameter nil 'alpha (cons alpha-num '(90))))
 
-;;; 上部のメニューはあるだけ邪魔なので消す
+;; 上部のメニューはあるだけ邪魔なので消す
 (tool-bar-mode -1)
 (menu-bar-mode -1)
+
+;; テーマ
+(load-theme 'tango-dark t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; 開発言語関係いろいろ
@@ -62,55 +86,10 @@
 (setq-default tab-width 2)
 (setq-default show-trailing-whitespace t) ; 行末の空白をハイライト
 
-;; php-mode
-(load-library "php-mode")
-(require 'php-mode)
-(add-hook 'php-mode-hook (lambda ()
-    (setq tab-width 2)
-    (setq indent-tabs-mode nil)
-    (setq c-basic-offset 2)
-    (defun ywb-php-lineup-arglist-intro (langelem)
-      (save-excursion
-        (goto-char (cdr langelem))
-        (vector (+ (current-column) c-basic-offset))))
-    (defun ywb-php-lineup-arglist-close (langelem)
-      (save-excursion
-        (goto-char (cdr langelem))
-        (vector (current-column))))
-    (c-set-offset 'arglist-intro 'ywb-php-lineup-arglist-intro)
-    (c-set-offset 'arglist-close 'ywb-php-lineup-arglist-close)))
-
-;; ruby-mode
-(autoload 'ruby-mode "ruby-mode"
-  "Mode for editing ruby source files" t)
-(add-to-list 'auto-mode-alist '("\\.rb$latex " . ruby-mode))
-(add-to-list 'auto-mode-alist '("Capfile$" . ruby-mode))
-(add-to-list 'auto-mode-alist '("Gemfile$" . ruby-mode))
-(require 'ruby-block)
-(ruby-block-mode t)
-(setq ruby-block-highlight-toggle t)
-
-
-
-;; theme
-(load-theme 'tango-dark t)
-;; rainbow-delimiters
-(add-hook 'prog-mode-hook #'rainbow-delimiters-mode)
-
-;;; Coding
-;; flycheck & flycheck-cask
-(add-hook 'after-init-hook #'global-flycheck-mode)
-(eval-after-load 'flycheck
-  '(add-hook 'flycheck-mode-hook #'flycheck-cask-setup))
-
-;; auto-complete
-(require 'auto-complete)
-(global-auto-complete-mode 1)
-
 
 ;;; helm
 (require 'helm)
-(require 'helm-config)
+;(require 'helm-config)
 (require 'helm-gtags)
 ;; 標準を置き換え
 (helm-mode +1)
@@ -140,37 +119,36 @@
    (local-set-key (kbd "M-l") 'helm-gtags-select)
    ;;ジャンプ前の場所に戻る
    (local-set-key (kbd "C-t") 'helm-gtags-pop-stack)))
-(add-hook 'php-mode-hook 'helm-gtags-mode)
 (add-hook 'ruby-mode-hook 'helm-gtags-mode)
 
+;; ruby-mode
+(autoload 'ruby-mode "ruby-mode"
+  "Mode for editing ruby source files" t)
+(add-to-list 'auto-mode-alist '("\\.rb$latex " . ruby-mode))
+(add-to-list 'auto-mode-alist '("Capfile$" . ruby-mode))
+(add-to-list 'auto-mode-alist '("Gemfile$" . ruby-mode))
+(setq ruby-insert-encoding-magic-comment nil)
+(autoload 'rspec-mode "rspec-mode")
+(add-hook 'ruby-mode-hook 'rspec-mode)
+(autoload 'flycheck-mode "flycheck")
+(add-hook 'ruby-mode-hook 'flycheck-mode)
+(setq flycheck-check-syntax-automatically '(idle-change mode-enabled new-line save))
+(projectile-rails-global-mode)
 
+;; rust-mode
+(autoload 'rust-mode "rust-mode" nil t)
+(add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))
+;;; rust-modeでrust-format-on-saveをtにすると自動でrustfmtが走る
+(eval-after-load "rust-mode"
+  '(setq-default rust-format-on-save t))
+;;; rustのファイルを編集するときにracerとflycheckを起動する
+(add-hook 'rust-mode-hook (lambda ()
+                            (flycheck-rust-setup)))
 
-;;; prog-modes
-;; js2-mode
-(autoload 'js2-mode "js2" nil t)
-(add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
+;; elixir-mode and alchemist
+(add-hook 'elixir-mode-hook 'ac-alchemist-setup)
 
-;; web-mode
-(require 'web-mode)
-; 適用する拡張子
-(add-to-list 'auto-mode-alist '("\\.phtml$"     . web-mode))
-(add-to-list 'auto-mode-alist '("\\.tpl\\.php$" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.jsp$"       . web-mode))
-(add-to-list 'auto-mode-alist '("\\.as[cp]x$"   . web-mode))
-(add-to-list 'auto-mode-alist '("\\.erb$"       . web-mode))
-(add-to-list 'auto-mode-alist '("\\.html?$"     . web-mode))
-
-; インデント数
-(defun web-mode-hook ()
-  "Hooks for Web mode."
-  (setq web-mode-html-offset   2)
-  (setq web-mode-css-offset    2)
-  (setq web-mode-script-offset 2)
-  (setq web-mode-php-offset    2)
-  (setq web-mode-java-offset   2)
-  (setq web-mode-asp-offset    2))
-(add-hook 'web-mode-hook 'web-mode-hook)(require 'web-mode)
-
-;; yaml-mode
-(require 'yaml-mode)
-(add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode))
+;; k8s-mode
+(use-package k8s-mode
+  :ensure t
+  :hook (k8s-mode . yas-minor-mode))
