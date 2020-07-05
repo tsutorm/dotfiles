@@ -4,7 +4,7 @@
 [core]
   whitespace = cr-at-eol
   excludesfile = ~/.gitignore
-  editor = emacs
+  editor = vim
 [color]
   ui = auto
   diff = auto

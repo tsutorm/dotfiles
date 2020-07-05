@@ -152,3 +152,33 @@
 (use-package k8s-mode
   :ensure t
   :hook (k8s-mode . yas-minor-mode))
+
+;; tide & typescript-mode
+(defun setup-tide-mode ()
+  (interactive)
+  (tide-setup)
+  (flycheck-mode +1)
+  (setq flycheck-check-syntax-automatically '(save mode-enabled))
+  (eldoc-mode +1)
+  (tide-hl-identifier-mode +1)
+  ;; company is an optional dependency. You have to
+  ;; install it separately via package-install
+  ;; `M-x package-install [ret] company`
+  (company-mode +1))
+
+;; react-jsx-mode(rjsx-mode)
+;; see: https://joppot.info/2017/04/07/3734
+(add-to-list 'auto-mode-alist '(".*\\.[jt]sx\\'" . rjsx-mode))
+(add-hook 'rjsx-mode-hook
+          (lambda ()
+            (setq indent-tabs-mode nil) ;;インデントはタブではなくスペース
+            (setq js-indent-level 2) ;;スペースは２つ、デフォルトは4
+            (setq js2-strict-missing-semi-warning nil))) ;;行末のセミコロンの警告はオフ
+
+;; aligns annotation to the right hand side
+(setq company-tooltip-align-annotations t)
+
+;; formats the buffer before saving
+(add-hook 'before-save-hook 'tide-format-before-save)
+
+(add-hook 'typescript-mode-hook #'setup-tide-mode)

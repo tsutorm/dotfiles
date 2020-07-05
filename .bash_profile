@@ -45,12 +45,7 @@ PATH=$PATH:$HOME/bin
 TERM="xterm-256color"
 export PATH
 export TERM
-alias emacs=/usr/local/bin/emacs-24.3
-PATH=$HOME/.cask/bin:/usr/lib/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:$HOME/bin
-[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm" # Load RVM into a shell session *as a function*
+alias emacs=/usr/local/bin/emacs
 if [ -f $HOME/.bashrc ]; then
 source $HOME/.bashrc
-fi
-if [ -f $HOME/.virtualenvs/default/bin/virtualenvwrapper.sh ]; then
-  source $HOME/.virtualenvs/default/bin/virtualenvwrapper.sh
 fi
