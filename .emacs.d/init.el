@@ -1,31 +1,47 @@
+(defvar my-favorite-package-list
+  '(ag
+    company
+    counsel
+    dash
+    epl
+    flycheck
+    ivy
+    js2-mode
+    lsp-mode
+    pkg-info
+    rainbow-delimiters
+    rjsx-mode
+    s
+    swiper
+    typescript-mode
+    web-mode
+    mozc
+    tide
+    )
+  "packages to be installed")
+
+
 (require 'package)
-;;;;; add melpa and orgmode for packages
-(setq package-archives
-      '(("melpa" . "http://melpa.org/packages/")
-        ("melpa-stable" . "http://stable.melpa.org/packages/")
-        ; ("marmalade" . "http://marmalade-repo.org/packages/")
-        ("org" . "http://orgmode.org/elpa/")))
-;; Added by Package.el.  This must come before configurations of
-;; installed packages.  Don't delete this line.  If you don't want it,
-;; just comment it out by adding a semicolon to the start of the line.
-;; You may delete these explanatory comments.
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+(add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/"))
+(add-to-list 'package-archives '("marmalade" . "https://marmalade-repo.org/packages/"))
+(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/"))
 (package-initialize)
 
 (unless package-archive-contents
   (package-refresh-contents))
-;;;;; ensure to use use-package
-(when (not (package-installed-p 'use-package))
-  (package-install 'use-package))
-(require 'use-package)
-
-(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
-(when (file-exists-p custom-file)
-  (load custom-file))
+(dolist (pkg my-favorite-package-list)
+  (unless (package-installed-p pkg)
+    (package-install pkg)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; 言語環境、日本語入力など
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(require 'mozc)
+(load-library "mozc")
 (set-language-environment "Japanese")
+(setq default-input-method "japanese-mozc")
+(global-set-key [zenkaku-hankaku] 'toggle-input-method)
 (prefer-coding-system 'utf-8)
 
 ;;; バックアップ・自動保存
@@ -54,7 +70,7 @@
 (when window-system (blink-cursor-mode -1))
 
 ;; 対応するカッコを強調表示はrainbow-delimiter
-;(require 'rainbow-delimiters)
+(require 'rainbow-delimiters)
 (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
 
 ;;; 透明度を変更するコマンド M-x set-alpha
@@ -65,7 +81,7 @@
 ;  (set-frame-parameter nil 'alpha (cons alpha-num '(90))))
 
 ;; 上部のメニューはあるだけ邪魔なので消す
-(tool-bar-mode -1)
+;(tool-bar-mode -1)
 (menu-bar-mode -1)
 
 ;; テーマ
@@ -76,85 +92,56 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; インデント関係 2幅でスペースがでふぉ
-(setq tab-width 2)
-(setq indent-tabs-mode nil)
-(setq c-basic-offset 2)
-(setq js-indent-level 2)
+(setq tab-width 2
+      indent-tabs-mode nil
+      c-basic-offset 2
+      js-indent-level 2
+      typescript-indent-level 2
+      )
+
 
 ;; インデントルール
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 2)
 (setq-default show-trailing-whitespace t) ; 行末の空白をハイライト
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   '(tide web-mode ag counsel ivy company rjsx-mode lsp-mode rainbow-delimiters rainbow-mode typescript-mode js2-mode)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
 
+(defun run-local-vars-mode-hook ()
+  "Run `major-mode' hook after the local variables have been processed."
+  (run-hooks (intern (concat (symbol-name major-mode) "-local-vars-hook"))))
+(add-hook 'hack-local-variables-hook 'run-local-vars-mode-hook)
 
-;;; helm
-(require 'helm)
-;(require 'helm-config)
-(require 'helm-gtags)
-;; 標準を置き換え
-(helm-mode +1)
-(global-set-key (kbd "C-x b") 'helm-for-files)
-(global-set-key (kbd "C-x C-f") 'helm-find-files)
-;; helmショートカット
-(global-set-key (kbd "C-x C-h h") 'helm-mini)
-(global-set-key (kbd "C-x C-h r") 'helm-recentf)
-(global-set-key (kbd "C-x C-h i") 'helm-imenu)
-(global-set-key (kbd "C-x C-h k") 'helm-show-kill-ring)
-;; helmコマンド内のキーバインド
-(define-key helm-map (kbd "C-h") 'delete-backward-char)
-(define-key helm-read-file-map (kbd "C-h") 'delete-backward-char)
-(define-key helm-find-files-map (kbd "C-h") 'delete-backward-char)
-(define-key helm-find-files-map (kbd "TAB") 'helm-execute-persistent-action)
-(define-key helm-read-file-map (kbd "TAB") 'helm-execute-persistent-action)
-;; helm-gtags-mode
-(add-hook 'helm-gtags-mode-hook
-'(lambda ()
-   ;;入力されたタグの定義元へジャンプ
-   (local-set-key (kbd "M-t") 'helm-gtags-find-tag)
-   ;;入力タグを参照する場所へジャンプ
-   (local-set-key (kbd "M-r") 'helm-gtags-find-rtag)
-   ;;入力したシンボルを参照する場所へジャンプ
-   (local-set-key (kbd "M-s") 'helm-gtags-find-symbol)
-   ;;タグ一覧からタグを選択し, その定義元にジャンプする
-   (local-set-key (kbd "M-l") 'helm-gtags-select)
-   ;;ジャンプ前の場所に戻る
-   (local-set-key (kbd "C-t") 'helm-gtags-pop-stack)))
-(add-hook 'ruby-mode-hook 'helm-gtags-mode)
+(add-hook 'typescript-mode-local-vars-hook #'lsp)
 
-;; ruby-mode
-(autoload 'ruby-mode "ruby-mode"
-  "Mode for editing ruby source files" t)
-(add-to-list 'auto-mode-alist '("\\.rb$latex " . ruby-mode))
-(add-to-list 'auto-mode-alist '("Capfile$" . ruby-mode))
-(add-to-list 'auto-mode-alist '("Gemfile$" . ruby-mode))
-(setq ruby-insert-encoding-magic-comment nil)
-(autoload 'rspec-mode "rspec-mode")
-(add-hook 'ruby-mode-hook 'rspec-mode)
-(autoload 'flycheck-mode "flycheck")
-(add-hook 'ruby-mode-hook 'flycheck-mode)
-(setq flycheck-check-syntax-automatically '(idle-change mode-enabled new-line save))
-(projectile-rails-global-mode)
+;; react-jsx-mode(rjsx-mode)
+;; see: https://joppot.info/2017/04/07/3734
+(add-to-list 'auto-mode-alist '(".*\\.jsx\\'" . rjsx-mode))
+(add-hook 'rjsx-mode-hook
+          (lambda ()
+            (setq indent-tabs-mode nil) ;;インデントはタブではなくスペース
+            (setq js-indent-level 2) ;;スペースは２つ、デフォルトは4
+            (setq js2-strict-missing-semi-warning nil))) ;;行末のセミコロンの警告はオフ
 
-;; rust-mode
-(autoload 'rust-mode "rust-mode" nil t)
-(add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))
-;;; rust-modeでrust-format-on-saveをtにすると自動でrustfmtが走る
-(eval-after-load "rust-mode"
-  '(setq-default rust-format-on-save t))
-;;; rustのファイルを編集するときにracerとflycheckを起動する
-(add-hook 'rust-mode-hook (lambda ()
-                            (flycheck-rust-setup)))
+;; flycheck
+(require 'flycheck)
 
-;; elixir-mode and alchemist
-(add-hook 'elixir-mode-hook 'ac-alchemist-setup)
-
-;; k8s-mode
-(use-package k8s-mode
-  :ensure t
-  :hook (k8s-mode . yas-minor-mode))
-
-;; tide & typescript-mode
+;;; tide setup
 (defun setup-tide-mode ()
+  (setq indent-tabs-mode nil)
+  (setq typescript-indent-level 2)
+  (setq tab-width 2)
   (interactive)
   (tide-setup)
   (flycheck-mode +1)
@@ -166,15 +153,6 @@
   ;; `M-x package-install [ret] company`
   (company-mode +1))
 
-;; react-jsx-mode(rjsx-mode)
-;; see: https://joppot.info/2017/04/07/3734
-(add-to-list 'auto-mode-alist '(".*\\.[jt]sx\\'" . rjsx-mode))
-(add-hook 'rjsx-mode-hook
-          (lambda ()
-            (setq indent-tabs-mode nil) ;;インデントはタブではなくスペース
-            (setq js-indent-level 2) ;;スペースは２つ、デフォルトは4
-            (setq js2-strict-missing-semi-warning nil))) ;;行末のセミコロンの警告はオフ
-
 ;; aligns annotation to the right hand side
 (setq company-tooltip-align-annotations t)
 
@@ -182,3 +160,58 @@
 (add-hook 'before-save-hook 'tide-format-before-save)
 
 (add-hook 'typescript-mode-hook #'setup-tide-mode)
+
+(require 'web-mode)
+(add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
+(add-hook 'web-mode-hook
+          (lambda ()
+            (setq web-mode-markup-indent-offset 2)
+            (setq web-mode-css-indent-offset 2)
+            (setq web-mode-code-indent-offset 2)
+            (when (string-equal "tsx" (file-name-extension buffer-file-name))
+              (setup-tide-mode))))
+;; enable typescript-tslint checker
+(flycheck-add-mode 'typescript-tslint 'web-mode)
+
+;; aligns annotation to the right hand side
+(setq company-tooltip-align-annotations t)
+
+;;; ivy/counsel
+(when (require 'ivy nil t)
+  ;; M-o を ivy-hydra-read-action に割り当てる．
+  (when (require 'ivy-hydra nil t)
+    (setq ivy-read-action-function #'ivy-hydra-read-action))
+  ;; `ivy-switch-buffer' (C-x b) のリストに recent files と bookmark を含める．
+  (setq ivy-use-virtual-buffers t)
+  ;; ミニバッファでコマンド発行を認める
+  (when (setq enable-recursive-minibuffers t)
+    (minibuffer-depth-indicate-mode 1)) ;; 何回層入ったかプロンプトに表示．
+  ;; ESC連打でミニバッファを閉じる
+  (define-key ivy-minibuffer-map (kbd "<escape>") 'minibuffer-keyboard-quit)
+  ;; プロンプトの表示が長い時に折り返す（選択候補も折り返される）
+  (setq ivy-truncate-lines nil)
+  ;; リスト先頭で `C-p' するとき，リストの最後に移動する
+  (setq ivy-wrap t)
+  ;; アクティベート
+  (ivy-mode 1))
+
+(when (require 'counsel nil t)
+  ;; キーバインドは一例です．好みに変えましょう．
+  (global-set-key (kbd "M-x") 'counsel-M-x)
+  (global-set-key (kbd "M-y") 'counsel-yank-pop)
+  (global-set-key (kbd "C-x b") 'counsel-switch-buffer	)
+  (global-set-key (kbd "C-x C-f") 'counsel-find-file)
+  (global-set-key (kbd "C-M-z") 'counsel-fzf)
+  (global-set-key (kbd "C-M-r") 'counsel-recentf)
+  (global-set-key (kbd "C-x C-b") 'counsel-ibuffer)
+  (global-set-key (kbd "C-f") 'counsel-ag)
+  ;; アクティベート
+  (counsel-mode 1))
+
+(defun ad:counsel-ag (f &optional initial-input initial-directory extra-ag-args ag-prompt caller)
+  (apply f (or initial-input (ivy-thing-at-point))
+         (unless current-prefix-arg
+           (or initial-directory default-directory))
+         extra-ag-args ag-prompt caller))
+
+(advice-add 'counsel-ag :around #'ad:counsel-ag)
