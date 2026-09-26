@@ -61,10 +61,13 @@ check "スクリプトをリポジトリへのリンクにする"       test "$(
 check "statusLine を設定する"                        jq -e '.statusLine.command == "~/.claude/statusline.sh"' "$C/settings.json"
 check "既存 hook と既存設定を残す"                   jq -e '.model == "opus" and (.hooks.PostToolUse | length == 2)' "$C/settings.json"
 check "CLAUDE.md に節を追記し既存を残す"             bash -c "grep -q '# 既存' '$C/CLAUDE.md' && grep -q 'usage-monitor:begin' '$C/CLAUDE.md'"
+check "CLAUDE.md にブラウジングの使い分け節を追記する"  grep -q 'browser-rules:begin' "$C/CLAUDE.md"
+check "使い分け節は WebFetch と agent-browser の基準を持つ" bash -c "grep -q 'WebFetch' '$C/CLAUDE.md' && grep -q 'skills get core' '$C/CLAUDE.md'"
+check "退避した CLAUDE.md は変更前の内容のまま"      bash -c "[ \"\$(cat '$C'/backups/CLAUDE.md.*)\" = '# 既存' ]"
 before=$(md5sum "$C/settings.json" "$C/CLAUDE.md")
 out=$("$SRC/install.sh")
 check "2 回目は何も変えない"                         test "$before" = "$(md5sum "$C/settings.json" "$C/CLAUDE.md")"
-check "2 回目は全て ok と報告"                       test "$(grep -c '^ok' <<<"$out")" -eq 4
+check "2 回目は全て ok と報告"                       test "$(grep -c '^ok' <<<"$out")" -eq 5
 check "変更前のファイルを backups に退避する"        bash -c "ls '$C'/backups/settings.json.* '$C'/backups/CLAUDE.md.*"
 
 echo "---- $pass passed, $fail failed"

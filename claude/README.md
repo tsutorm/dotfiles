@@ -1,9 +1,12 @@
-# Claude Code: ステータスライン + 使用量モニタ
+# Claude Code の設定
 
 - `statusline.sh` — 2 行のステータスライン（モデル/effort/style、ディレクトリ/ブランチ/worktree、セッション識別子、ctx・5h・7d のバーと %、Cost）。表示のたびに使用量を `~/.claude/state/usage/<session_id>.json` に保存する。
 - `bin/claude-usage` — 保存された使用量を読み、残量と推奨アクションを出す CLI。`--hook` でフックとして動き、閾値を超えたときだけ Claude の文脈に通知する。
 - `settings.fragment.json` — `statusLine` と hooks（UserPromptSubmit / PostToolUse）の設定。
-- `CLAUDE.usage.md` — 通知を受けた Claude の動き方（`~/.claude/CLAUDE.md` に差し込まれる）。
+- `CLAUDE.usage.md` — 通知を受けた Claude の動き方。
+- `CLAUDE.browser.md` — Web ブラウジングの道具の使い分け（WebFetch / agent-browser など）。
+
+`CLAUDE.*.md` は `~/.claude/CLAUDE.md` に差し込まれる。先頭行と末尾行のマーカー（`<!-- 名前:begin -->` / `<!-- 名前:end -->`）の間だけが差し替わり、それ以外の内容はそのまま残る。新しい節はこの形式のファイルを足すだけで配れる。
 
 ## 導入
 
