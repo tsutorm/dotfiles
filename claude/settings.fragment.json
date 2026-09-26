@@ -1,0 +1,15 @@
+{
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh",
+    "refreshInterval": 30
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "~/.claude/bin/claude-usage --hook", "timeout": 5 }] }
+    ],
+    "PostToolUse": [
+      { "hooks": [{ "type": "command", "command": "~/.claude/bin/claude-usage --hook", "timeout": 5 }] }
+    ]
+  }
+}
