@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# statusline.sh が保存した使用量スナップショットを読み、残量と推奨アクションを出す。
+#   claude-usage            … 現セッション（$CLAUDE_CODE_SESSION_ID）の要約
+#   claude-usage --json     … 生スナップショット + level
+#   claude-usage --all      … 直近 6h に更新された全セッション一覧
+#   claude-usage --hook     … フック用（stdin のフック入力から session_id を取り、必要時のみ additionalContext を出す）
+# 閾値: ctx 60/80, 5h 70/90, 7d 80/95（warn/crit）。環境変数 CLAUDE_USAGE_* で上書き可。
+set -u -o pipefail
+DIR="$HOME/.claude/state/usage"
+CTX_W=${CLAUDE_USAGE_CTX_WARN:-60};  CTX_C=${CLAUDE_USAGE_CTX_CRIT:-80}
+H5_W=${CLAUDE_USAGE_5H_WARN:-70};    H5_C=${CLAUDE_USAGE_5H_CRIT:-90}
+D7_W=${CLAUDE_USAGE_7D_WARN:-80};    D7_C=${CLAUDE_USAGE_7D_CRIT:-95}
+
+# スナップショットに level / 推奨を付けた JSON を出す
+analyze() {
+  jq -c --argjson now "$(date +%s)" \
+    --argjson cw "$CTX_W" --argjson cc "$CTX_C" --argjson hw "$H5_W" --argjson hc "$H5_C" \
+    --argjson dw "$D7_W" --argjson dc "$D7_C" '
+    def lv($p; $w; $c): if $p == null then 0 elif $p >= $c then 2 elif $p >= $w then 1 else 0 end;
+    def left($t): if $t == null then null else (($t - $now) / 60 | floor) end;
+    . as $s
+    | ($s.context.used_percentage) as $ctx
+    | ($s.rate_limits.five_hour.used_percentage) as $h5
+    | ($s.rate_limits.seven_day.used_percentage) as $d7
+    | {ctx: lv($ctx; $cw; $cc), h5: lv($h5; $hw; $hc), d7: lv($d7; $dw; $dc)} as $L
+    | $s + {
+        age_sec: ($now - $s.updated_at),
+        ctx_pct: $ctx, ctx_tokens_left: (if $ctx == null or $s.context.context_window_size == null then null
+                    else (($s.context.context_window_size * (100 - $ctx) / 100) | floor) end),
+        h5_pct: $h5, h5_reset_min: left($s.rate_limits.five_hour.resets_at),
+        d7_pct: $d7, d7_reset_min: left($s.rate_limits.seven_day.resets_at),
+        levels: $L, level: ([$L[]] | max),
+        advice: [
+          (if $L.ctx == 2 then "context 逼迫: 区切りの良い所で状態をファイル/メモリに退避し、/compact を提案（または大きな読み込みをサブエージェントへ委譲）"
+           elif $L.ctx == 1 then "context 注意: 大きなファイル全文読み・長い出力を避け、調査はサブエージェントへ。作業状態を要約して残す準備を"
+           else empty end),
+          (if $L.h5 == 2 then "5h 枠 逼迫: 新規の重い作業を始めない。現タスクを安全な区切りで止め、残作業と再開手順を書き出す"
+           elif $L.h5 == 1 then "5h 枠 注意: サブエージェントは sonnet/haiku、effort を下げる、並列起動を控える"
+           else empty end),
+          (if $L.d7 == 2 then "週間枠 逼迫: 必須作業のみ。ユーザーに優先度を確認"
+           elif $L.d7 == 1 then "週間枠 注意: 探索的・投機的な作業を減らす"
+           else empty end)
+        ]
+      }'
+}
+
+fmt_line() {
+  jq -r '
+    def p($x): if $x == null then "n/a" else "\($x|floor)%" end;
+    def m($x): if $x == null then "" elif $x >= 1440 then " (reset \($x/1440|floor)d\(($x%1440)/60|floor)h)" else " (reset \($x/60|floor)h\($x%60)m)" end;
+    "[usage] level=\(["ok","warn","crit"][.level]) ctx=\(p(.ctx_pct))\(if .ctx_tokens_left then " (残り約\(.ctx_tokens_left/1000|floor)k tok)" else "" end) 5h=\(p(.h5_pct))\(m(.h5_reset_min)) 7d=\(p(.d7_pct))\(m(.d7_reset_min)) cost=$\(.cost_usd // 0 | . * 100 | round / 100) (snapshot \(.age_sec)s前)"
+    + (if (.advice|length) > 0 then "\n" + (.advice | map("- " + .) | join("\n")) else "" end)'
+}
+
+load() { local f="$DIR/$1.json"; [ -s "$f" ] && analyze <"$f"; }
+
+case "${1:-}" in
+  --json)
+    load "${2:-${CLAUDE_CODE_SESSION_ID:-}}" || { echo '{"error":"no snapshot"}'; exit 1; } ;;
+  --all)
+    find "$DIR" -name '*.json' -mmin -360 2>/dev/null | while read -r f; do
+      analyze <"$f" | jq -r '"\(.session_id[0:8]) \(.session_name // "-")\t\(.branch // "-")\tctx=\(.ctx_pct // "n/a")% 5h=\(.h5_pct // "n/a")% $\(.cost_usd // 0 | .*100|round/100)"'
+    done ;;
+  --hook)
+    # 閾値の段階が上がった時（または UserPromptSubmit で warn 以上の時）だけ additionalContext を出す
+    in=$(cat); sid=$(jq -r '.session_id // empty' <<<"$in"); ev=$(jq -r '.hook_event_name // empty' <<<"$in")
+    [ -z "$sid" ] && exit 0
+    a=$(load "$sid") || exit 0
+    lvkey=$(jq -r '"\(.levels.ctx)\(.levels.h5)\(.levels.d7)"' <<<"$a")
+    mark="$DIR/$sid.notified"; prev=$(cat "$mark" 2>/dev/null || echo 000)
+    escalated=0
+    for i in 0 1 2; do [ "${lvkey:$i:1}" -gt "${prev:$i:1}" ] && escalated=1; done
+    echo "$lvkey" >"$mark"   # 下がった場合もリセットされ、compact 後に再上昇すれば再通知される
+    level=$(jq -r .level <<<"$a")
+    if [ "$escalated" = 1 ] || { [ "$ev" = UserPromptSubmit ] && [ "$level" -ge 1 ]; }; then
+      msg=$(fmt_line <<<"$a")
+      jq -n --arg ev "$ev" --arg m "$msg" '{hookSpecificOutput:{hookEventName:$ev, additionalContext:$m}}'
+    fi ;;
+  -h|--help) sed -n '2,7p' "$0" ;;
+  *)
+    sid="${1:-${CLAUDE_CODE_SESSION_ID:-}}"
+    load "$sid" | fmt_line || { echo "no snapshot for session '${sid}' (statusline がまだ実行されていない可能性)"; exit 1; } ;;
+esac
