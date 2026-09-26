@@ -1,9 +1,10 @@
+[init]
+	defaultBranch = main
 [user]
-  name = tsutorm
-  email = oonishi.wasborn.1981@gmail.com
+	name = tsutorm
+	email = oonishi.wasborn.1981@gmail.com
 [core]
   whitespace = cr-at-eol
-  excludesfile = ~/.gitignore
   editor = vim
 [color]
   ui = auto
@@ -27,4 +28,3 @@
   logall = log --graph --all --color --pretty='%x09%h %cn%x09%s %Cred%d%Creset'
   loga = log -n 25 --graph --all --color --pretty='%x09%h %cn%x09%s %Cred%d%Creset'
   lf = log --follow -p
-	quick-stats = ! /usr/local/bin/git-quick-stats

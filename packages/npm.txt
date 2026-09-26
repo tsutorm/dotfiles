@@ -1,0 +1,6 @@
+# npm install -g するパッケージ（Node は ~/.tool-versions のもの）
+@googleworkspace/cli
+@openai/codex
+@tobilu/qmd
+agent-browser
+node-llama-cpp

@@ -1,0 +1,34 @@
+# bootstrap の前提
+ca-certificates
+curl
+git
+gnupg
+unzip
+# asdf / mise で Python・Ruby をビルドするための依存
+build-essential
+libssl-dev
+zlib1g-dev
+libbz2-dev
+libreadline-dev
+libsqlite3-dev
+libncursesw5-dev
+libffi-dev
+libgdbm-dev
+libyaml-dev
+libgmp-dev
+liblzma-dev
+tk-dev
+xz-utils
+uuid-dev
+# 日常のツール
+bubblewrap
+cmake
+direnv
+ffmpeg
+gh
+jq
+lzma
+python3-setuptools
+python3-wheel
+tmux
+tree
