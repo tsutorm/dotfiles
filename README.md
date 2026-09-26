@@ -14,6 +14,7 @@
   - ruby
   - rust
 - deno
+- Claude Code のステータスライン + 使用量モニタ（[claude/README.md](claude/README.md)。`./claude/install.sh` で個別に導入）
 
 ### Setup
 
