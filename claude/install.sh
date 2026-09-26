@@ -40,20 +40,24 @@ else
   echo "merge $settings"
 fi
 
-# 3. CLAUDE.md: マーカー間を差し替え、無ければ末尾に追記
+# 3. CLAUDE.md: CLAUDE.*.md ごとに、先頭行のマーカー間を差し替え、無ければ末尾に追記
 md="$DEST/CLAUDE.md"; touch "$md"
-if grep -q '<!-- usage-monitor:begin -->' "$md"; then
-  new=$(awk -v f="$SRC/CLAUDE.usage.md" '
-    /<!-- usage-monitor:begin -->/ { while ((getline l < f) > 0) print l; skip=1; next }
-    /<!-- usage-monitor:end -->/   { skip=0; next }
-    !skip' "$md")
-else
-  new="$(cat "$md")"$'\n\n'"$(cat "$SRC/CLAUDE.usage.md")"
-fi
-if [ "$new" = "$(cat "$md")" ]; then echo "ok    $md"
-else
-  run cp "$md" "$DEST/backups/CLAUDE.md.$ts"
-  [ $DRY = 1 ] || printf '%s\n' "$new" > "$md"
-  echo "update $md"
-fi
+for frag in "$SRC"/CLAUDE.*.md; do
+  begin=$(head -n1 "$frag")                       # 例: <!-- usage-monitor:begin -->
+  end=${begin/:begin/:end}
+  if grep -qF "$begin" "$md"; then
+    new=$(awk -v f="$frag" -v b="$begin" -v e="$end" '
+      $0 == b { while ((getline l < f) > 0) print l; skip=1; next }
+      $0 == e { skip=0; next }
+      !skip' "$md")
+  else
+    new="$(cat "$md")"$'\n\n'"$(cat "$frag")"
+  fi
+  if [ "$new" = "$(cat "$md")" ]; then echo "ok    $md ($(basename "$frag"))"
+  else
+    [ -e "$DEST/backups/CLAUDE.md.$ts" ] || run cp "$md" "$DEST/backups/CLAUDE.md.$ts"   # 変更前の状態を 1 回だけ退避
+    [ $DRY = 1 ] || printf '%s\n' "$new" > "$md"
+    echo "update $md ($(basename "$frag"))"
+  fi
+done
 echo "完了。次回のステータスライン更新（最長30秒）から反映されます。"
